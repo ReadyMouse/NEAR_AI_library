@@ -2,6 +2,7 @@
 target/
 Cargo.lock
 
+
 # Rust
 **/target
 **/Cargo.lock
@@ -127,3 +128,5 @@ context.md
 **/dist/
 **/.parcel-cache
 **/.next
+hello-near-examples/frontend/build/
+hello-near-examples/frontend/.next/
