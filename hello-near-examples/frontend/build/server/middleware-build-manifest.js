@@ -25,6 +25,11 @@ globalThis.__BUILD_MANIFEST = {
       "static/chunks/main.js",
       "static/chunks/pages/_error.js"
     ],
+    "/ai-catalog": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/ai-catalog.js"
+    ],
     "/hello-near": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",

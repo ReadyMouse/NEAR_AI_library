@@ -18,6 +18,16 @@ exports.modules = {
 
 
 
+/***/ }),
+
+/***/ "./node_modules/@near-wallet-selector/modal-ui/styles.css":
+/*!****************************************************************!*\
+  !*** ./node_modules/@near-wallet-selector/modal-ui/styles.css ***!
+  \****************************************************************/
+/***/ (() => {
+
+
+
 /***/ })
 
 };

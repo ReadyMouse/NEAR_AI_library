@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useWallet } from '@/wallets/web3modal';
+import { useWalletSelector } from '@near-wallet-selector/react-hook';
 
 import styles from '@/styles/app.module.css';
 
 export const AICatalog = () => {
-  const { signedAccountId, wallet } = useWallet();
+  const { selector, accountId } = useWalletSelector();
   const [models, setModels] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,15 +23,23 @@ export const AICatalog = () => {
 
   // Fetch total models count
   const fetchTotalModels = async () => {
-    if (!wallet) return;
+    if (!selector) return;
     
     try {
-      const result = await wallet.viewMethod({
-        contractId: process.env.NEXT_PUBLIC_CONTRACT_ID,
-        method: 'get_total_models',
-        args: {}
+      const { network } = selector.store.getState();
+      const result = await selector.query({
+        request: {
+          method: 'query',
+          params: {
+            request_type: 'call_function',
+            finality: 'optimistic',
+            account_id: process.env.NEXT_PUBLIC_CONTRACT_ID,
+            method_name: 'get_total_models',
+            args_base64: btoa(JSON.stringify({}))
+          }
+        }
       });
-      setTotalModels(result);
+      setTotalModels(JSON.parse(result.result));
     } catch (error) {
       console.error('Error fetching total models:', error);
     }
@@ -39,16 +47,24 @@ export const AICatalog = () => {
 
   // Fetch all models
   const fetchModels = async () => {
-    if (!wallet) return;
+    if (!selector) return;
     
     setLoading(true);
     try {
-      const result = await wallet.viewMethod({
-        contractId: process.env.NEXT_PUBLIC_CONTRACT_ID,
-        method: 'get_all_models',
-        args: { from_index: 0, limit: 50 }
+      const { network } = selector.store.getState();
+      const result = await selector.query({
+        request: {
+          method: 'query',
+          params: {
+            request_type: 'call_function',
+            finality: 'optimistic',
+            account_id: process.env.NEXT_PUBLIC_CONTRACT_ID,
+            method_name: 'get_all_models',
+            args_base64: btoa(JSON.stringify({ from_index: 0, limit: 50 }))
+          }
+        }
       });
-      setModels(result);
+      setModels(JSON.parse(result.result));
     } catch (error) {
       console.error('Error fetching models:', error);
     } finally {
@@ -58,38 +74,59 @@ export const AICatalog = () => {
 
   // Search models
   const searchModels = async () => {
-    if (!wallet || !searchQuery.trim()) return;
+    if (!selector || !searchQuery.trim()) return;
     
     setLoading(true);
     try {
       let result;
       switch (searchType) {
         case 'name':
-          result = await wallet.viewMethod({
-            contractId: process.env.NEXT_PUBLIC_CONTRACT_ID,
-            method: 'search_by_name',
-            args: { name_query: searchQuery }
+          result = await selector.query({
+            request: {
+              method: 'query',
+              params: {
+                request_type: 'call_function',
+                finality: 'optimistic',
+                account_id: process.env.NEXT_PUBLIC_CONTRACT_ID,
+                method_name: 'search_by_name',
+                args_base64: btoa(JSON.stringify({ name_query: searchQuery }))
+              }
+            }
           });
           break;
         case 'type':
-          result = await wallet.viewMethod({
-            contractId: process.env.NEXT_PUBLIC_CONTRACT_ID,
-            method: 'search_by_type',
-            args: { model_type: searchQuery }
+          result = await selector.query({
+            request: {
+              method: 'query',
+              params: {
+                request_type: 'call_function',
+                finality: 'optimistic',
+                account_id: process.env.NEXT_PUBLIC_CONTRACT_ID,
+                method_name: 'search_by_type',
+                args_base64: btoa(JSON.stringify({ model_type: searchQuery }))
+              }
+            }
           });
           break;
         case 'tags':
           const tags = searchTags.split(',').map(tag => tag.trim()).filter(tag => tag);
-          result = await wallet.viewMethod({
-            contractId: process.env.NEXT_PUBLIC_CONTRACT_ID,
-            method: 'search_by_tags',
-            args: { tags }
+          result = await selector.query({
+            request: {
+              method: 'query',
+              params: {
+                request_type: 'call_function',
+                finality: 'optimistic',
+                account_id: process.env.NEXT_PUBLIC_CONTRACT_ID,
+                method_name: 'search_by_tags',
+                args_base64: btoa(JSON.stringify({ tags }))
+              }
+            }
           });
           break;
         default:
           return;
       }
-      setModels(result);
+      setModels(JSON.parse(result.result));
     } catch (error) {
       console.error('Error searching models:', error);
     } finally {
@@ -99,24 +136,30 @@ export const AICatalog = () => {
 
   // Create new model
   const createModel = async () => {
-    if (!wallet || !signedAccountId) return;
+    if (!selector || !accountId) return;
     
     try {
       const tags = newModel.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
       
-      await wallet.callMethod({
-        contractId: process.env.NEXT_PUBLIC_CONTRACT_ID,
-        method: 'create_model',
-        args: {
-          id: newModel.id,
-          name: newModel.name,
-          description: newModel.description,
-          model_type: newModel.model_type,
-          ipfs_hash: newModel.ipfs_hash || null,
-          tags
-        },
-        gas: '300000000000000',
-        deposit: '1'
+      await selector.signAndSendTransaction({
+        signerId: accountId,
+        receiverId: process.env.NEXT_PUBLIC_CONTRACT_ID,
+        actions: [{
+          type: 'FunctionCall',
+          params: {
+            methodName: 'create_model',
+            args: {
+              id: newModel.id,
+              name: newModel.name,
+              description: newModel.description,
+              model_type: newModel.model_type,
+              ipfs_hash: newModel.ipfs_hash || null,
+              tags
+            },
+            gas: '300000000000000',
+            deposit: '1'
+          }
+        }]
       });
       
       // Reset form and refresh
@@ -139,7 +182,7 @@ export const AICatalog = () => {
   useEffect(() => {
     fetchTotalModels();
     fetchModels();
-  }, [wallet]);
+  }, [selector]);
 
   const handleSearch = (e) => {
     e.preventDefault();

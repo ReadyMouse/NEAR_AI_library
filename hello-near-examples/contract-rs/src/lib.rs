@@ -3,6 +3,7 @@ use near_sdk::{log, near, AccountId};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use borsh_derive::BorshSchema;
 use near_sdk::serde::{Deserialize, Serialize};
+use schemars::JsonSchema;
 
 // Declare the models module
 mod models;
@@ -15,7 +16,7 @@ pub struct Contract {
 }
 
 // Define the model structure
-#[derive(Clone, BorshSerialize, BorshDeserialize, BorshSchema, Serialize, Deserialize)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, BorshSchema, Serialize, Deserialize, JsonSchema)]
 #[serde(crate = "near_sdk::serde")]
 pub struct Model {
     pub id: String,
@@ -55,6 +56,55 @@ impl Contract {
     ) {
         self.internal_create_model(id, name, description, model_type, ipfs_hash, tags);
     }
+
+    // Get all models with pagination
+    pub fn get_all_models(&self, from_index: Option<u64>, limit: Option<u64>) -> Vec<Model> {
+        let from_index = from_index.unwrap_or(0);
+        let limit = limit.unwrap_or(50);
+        
+        self.models
+            .iter()
+            .skip(from_index as usize)
+            .take(limit as usize)
+            .cloned()
+            .collect()
+    }
+
+    // Search models by name (case-insensitive partial match)
+    pub fn search_by_name(&self, name_query: String) -> Vec<Model> {
+        let query = name_query.to_lowercase();
+        self.models
+            .iter()
+            .filter(|model| model.name.to_lowercase().contains(&query))
+            .cloned()
+            .collect()
+    }
+
+    // Search models by type
+    pub fn search_by_type(&self, model_type: String) -> Vec<Model> {
+        self.models
+            .iter()
+            .filter(|model| model.model_type == model_type)
+            .cloned()
+            .collect()
+    }
+
+    // Search models by tags (models must have ALL specified tags)
+    pub fn search_by_tags(&self, tags: Vec<String>) -> Vec<Model> {
+        self.models
+            .iter()
+            .filter(|model| {
+                // Check if model has all the specified tags
+                tags.iter().all(|tag| {
+                    model.tags.iter().any(|model_tag| 
+                        model_tag.to_lowercase() == tag.to_lowercase()
+                    )
+                })
+            })
+            .cloned()
+            .collect()
+    }
+
     // Get model information by ID
     pub fn get_model_info(&self, id: String) -> Option<(String, String, String, String, String, Vec<String>)> {
         for model in &self.models {
