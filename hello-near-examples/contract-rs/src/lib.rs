@@ -4,6 +4,9 @@ use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use borsh_derive::BorshSchema;
 use near_sdk::serde::{Deserialize, Serialize};
 
+// Declare the models module
+mod models;
+
 // Define the contract structure
 #[near(contract_state)]
 pub struct Contract {
@@ -40,7 +43,6 @@ impl Default for Contract {
 // Implement the contract structure
 #[near]
 impl Contract {
-    // Initialize a new AI model entry
     #[payable]
     pub fn create_model(
         &mut self,
@@ -51,33 +53,8 @@ impl Contract {
         ipfs_hash: Option<String>,
         tags: Vec<String>,
     ) {
-        log!("Creating new AI model: {}", name);
-        
-        // Check if model with this ID already exists
-        for model in &self.models {
-            if model.id == id {
-                panic!("Model with ID {} already exists", id);
-            }
-        }
-        
-        let model = Model {
-            id: id.clone(),
-            name: name.clone(),
-            description,
-            model_type,
-            version: "1.0.0".to_string(),
-            owner: near_sdk::env::predecessor_account_id().to_string(), // Store as String
-            ipfs_hash,
-            tags,
-            created_at: near_sdk::env::block_timestamp(),
-            is_active: true,
-        };
-        
-        // Store the model
-        self.models.push(model);
-        self.total_models += 1;
+        self.internal_create_model(id, name, description, model_type, ipfs_hash, tags);
     }
-
     // Get model information by ID
     pub fn get_model_info(&self, id: String) -> Option<(String, String, String, String, String, Vec<String>)> {
         for model in &self.models {
