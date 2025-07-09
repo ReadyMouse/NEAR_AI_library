@@ -40,8 +40,9 @@
 }
 
 .grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(25%, auto));
+  display: flex;
+  justify-content: center;
+  align-items: center;
   max-width: 100%;
   width: var(--max-width);
 }
@@ -112,6 +113,25 @@
   position: relative;
 }
 
+.emoji {
+  font-size: 8rem;
+  line-height: 1;
+  text-align: center;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
 /* Enable hover only on non-touch devices */
 @media (hover: hover) and (pointer: fine) {
   .card:hover {
@@ -137,7 +157,6 @@
   }
 
   .grid {
-    grid-template-columns: 1fr;
     margin-bottom: 120px;
     max-width: 320px;
     text-align: center;
@@ -201,7 +220,7 @@
 /* Tablet and Smaller Desktop */
 @media (min-width: 701px) and (max-width: 1120px) {
   .grid {
-    grid-template-columns: repeat(2, 50%);
+    /* Centered layout maintained */
   }
 }
 
@@ -323,15 +342,19 @@
 
 .modelCard {
   padding: 1.5rem;
-  border-radius: var(--border-radius);
-  background: rgba(var(--card-rgb), 0.05);
-  border: 1px solid rgba(var(--card-border-rgb), 0.1);
+  border-radius: 8px;
+  background: white;
+  border: 1px solid #e0e0e0;
   transition: all 0.2s ease;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .modelCard:hover {
-  background: rgba(var(--card-rgb), 0.1);
-  border-color: rgba(var(--card-border-rgb), 0.2);
+  background: #f8f9fa;
+  border-color: #007bff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
 }
 
 .modelCard h3 {
@@ -354,11 +377,12 @@
 }
 
 .tag {
-  padding: 0.25rem 0.75rem;
-  background: rgba(var(--callout-rgb), 0.3);
-  border-radius: 12px;
-  font-size: 0.8rem;
-  color: var(--foreground-rgb);
+  padding: 0.25rem 0.5rem;
+  background: #e3f2fd;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: #1976d2;
+  border: 1px solid #bbdefb;
 }
 
 /* Mobile responsive */

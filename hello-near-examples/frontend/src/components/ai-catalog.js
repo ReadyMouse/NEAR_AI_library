@@ -12,6 +12,9 @@ export const AICatalog = () => {
   const [searchTags, setSearchTags] = useState('');
   const [totalModels, setTotalModels] = useState(0);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [sortBy, setSortBy] = useState('trending');
+  const [filterTask, setFilterTask] = useState('all');
+  const [filterSize, setFilterSize] = useState('all');
   const [newModel, setNewModel] = useState({
     id: '',
     name: '',
@@ -199,80 +202,108 @@ export const AICatalog = () => {
     fetchModels();
   };
 
+  const getTaskDisplayName = (modelType) => {
+    const taskMap = {
+      'llm': 'Text Generation',
+      'image': 'Image Generation',
+      'audio': 'Audio Processing',
+      'video': 'Video Processing',
+      'multimodal': 'Multimodal'
+    };
+    return taskMap[modelType] || modelType;
+  };
+
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp / 1000000);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) return 'Updated today';
+    if (diffDays <= 7) return `Updated ${diffDays} days ago`;
+    return date.toLocaleDateString();
+  };
+
   return (
     <div className={styles.container}>
-      <h1>AI Model Catalog</h1>
-      <p>Total Models: {totalModels}</p>
-      
-      {/* Search Section */}
-      <div className={styles.searchSection}>
-        <h2>Search Models</h2>
-        <form onSubmit={handleSearch} className={styles.searchForm}>
-          <select 
-            value={searchType} 
-            onChange={(e) => setSearchType(e.target.value)}
-            className={styles.select}
-          >
-            <option value="name">Search by Name</option>
-            <option value="type">Search by Type</option>
-            <option value="tags">Search by Tags</option>
-          </select>
-          
-          {searchType === 'tags' ? (
-            <input
-              type="text"
-              placeholder="Enter tags separated by commas"
-              value={searchTags}
-              onChange={(e) => setSearchTags(e.target.value)}
-              className={styles.input}
-            />
-          ) : (
-            <input
-              type="text"
-              placeholder={`Search by ${searchType}...`}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={styles.input}
-            />
-          )}
-          
-          <button type="submit" className={styles.button}>
-            Search
-          </button>
-          <button type="button" onClick={clearSearch} className={styles.button}>
-            Clear
-          </button>
-        </form>
+      {/* Header */}
+      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>😏</div>
+        <h1>Smirking Face</h1>
+        <p style={{ fontSize: '1.2rem', color: '#666', marginTop: '0.5rem' }}>
+          AI Models on Blockchain
+        </p>
       </div>
 
-      {/* Create Model Section */}
-      <div className={styles.createSection}>
+      {/* Search and Filters */}
+      <div className={styles.searchSection}>
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+          <input
+            type="text"
+            placeholder="Search models..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={styles.input}
+            style={{ flex: 1, minWidth: '200px' }}
+          />
+          <select 
+            value={filterTask} 
+            onChange={(e) => setFilterTask(e.target.value)}
+            className={styles.select}
+          >
+            <option value="all">All Tasks</option>
+            <option value="llm">Text Generation</option>
+            <option value="image">Image Generation</option>
+            <option value="audio">Audio Processing</option>
+            <option value="video">Video Processing</option>
+            <option value="multimodal">Multimodal</option>
+          </select>
+          <select 
+            value={sortBy} 
+            onChange={(e) => setSortBy(e.target.value)}
+            className={styles.select}
+          >
+            <option value="trending">Trending</option>
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+          </select>
+          <button onClick={clearSearch} className={styles.button}>
+            Clear
+          </button>
+        </div>
+        
         <button 
           onClick={() => setShowCreateForm(!showCreateForm)}
           className={styles.button}
+          style={{ backgroundColor: '#007bff', color: 'white' }}
         >
-          {showCreateForm ? 'Cancel' : 'Add New Model'}
+          {showCreateForm ? 'Cancel' : 'Add Model'}
         </button>
-        
-        {showCreateForm && (
+      </div>
+
+      {/* Create Model Form */}
+      {showCreateForm && (
+        <div className={styles.createSection}>
           <form onSubmit={(e) => { e.preventDefault(); createModel(); }} className={styles.createForm}>
             <h3>Create New Model</h3>
-            <input
-              type="text"
-              placeholder="Model ID"
-              value={newModel.id}
-              onChange={(e) => setNewModel({...newModel, id: e.target.value})}
-              className={styles.input}
-              required
-            />
-            <input
-              type="text"
-              placeholder="Model Name"
-              value={newModel.name}
-              onChange={(e) => setNewModel({...newModel, name: e.target.value})}
-              className={styles.input}
-              required
-            />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <input
+                type="text"
+                placeholder="Model ID"
+                value={newModel.id}
+                onChange={(e) => setNewModel({...newModel, id: e.target.value})}
+                className={styles.input}
+                required
+              />
+              <input
+                type="text"
+                placeholder="Model Name"
+                value={newModel.name}
+                onChange={(e) => setNewModel({...newModel, name: e.target.value})}
+                className={styles.input}
+                required
+              />
+            </div>
             <textarea
               placeholder="Description"
               value={newModel.description}
@@ -280,24 +311,26 @@ export const AICatalog = () => {
               className={styles.textarea}
               required
             />
-            <select
-              value={newModel.model_type}
-              onChange={(e) => setNewModel({...newModel, model_type: e.target.value})}
-              className={styles.select}
-            >
-              <option value="llm">Language Model (LLM)</option>
-              <option value="image">Image Generation</option>
-              <option value="audio">Audio Processing</option>
-              <option value="video">Video Processing</option>
-              <option value="multimodal">Multimodal</option>
-            </select>
-            <input
-              type="text"
-              placeholder="IPFS Hash (optional)"
-              value={newModel.ipfs_hash}
-              onChange={(e) => setNewModel({...newModel, ipfs_hash: e.target.value})}
-              className={styles.input}
-            />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <select
+                value={newModel.model_type}
+                onChange={(e) => setNewModel({...newModel, model_type: e.target.value})}
+                className={styles.select}
+              >
+                <option value="llm">Language Model (LLM)</option>
+                <option value="image">Image Generation</option>
+                <option value="audio">Audio Processing</option>
+                <option value="video">Video Processing</option>
+                <option value="multimodal">Multimodal</option>
+              </select>
+              <input
+                type="text"
+                placeholder="IPFS Hash (optional)"
+                value={newModel.ipfs_hash}
+                onChange={(e) => setNewModel({...newModel, ipfs_hash: e.target.value})}
+                className={styles.input}
+              />
+            </div>
             <input
               type="text"
               placeholder="Tags (comma separated)"
@@ -305,45 +338,63 @@ export const AICatalog = () => {
               onChange={(e) => setNewModel({...newModel, tags: e.target.value})}
               className={styles.input}
             />
-            <button type="submit" className={styles.button}>
+            <button type="submit" className={styles.button} style={{ backgroundColor: '#28a745', color: 'white' }}>
               Create Model
             </button>
           </form>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Models Display */}
       <div className={styles.modelsSection}>
-        <h2>Models ({models.length})</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2>Models ({models.length})</h2>
+          <p>Total: {totalModels}</p>
+        </div>
+        
         {loading ? (
-          <p>Loading...</p>
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <p>Loading models...</p>
+          </div>
         ) : models.length === 0 ? (
-          <p>No models found.</p>
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <p>No models found.</p>
+          </div>
         ) : (
           <div className={styles.modelsGrid}>
             {models.map((model, index) => (
               <div key={model.id || index} className={styles.modelCard}>
-                <h3>{model.name}</h3>
-                <p><strong>ID:</strong> {model.id}</p>
-                <p><strong>Type:</strong> {model.model_type}</p>
-                <p><strong>Description:</strong> {model.description}</p>
-                <p><strong>Version:</strong> {model.version}</p>
-                <p><strong>Owner:</strong> {model.owner}</p>
-                <p><strong>Status:</strong> {model.is_active ? 'Active' : 'Inactive'}</p>
-                {model.ipfs_hash && (
-                  <p><strong>IPFS:</strong> {model.ipfs_hash}</p>
-                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{model.name}</h3>
+                  <span style={{ 
+                    fontSize: '0.8rem', 
+                    padding: '0.2rem 0.5rem', 
+                    backgroundColor: '#f0f0f0', 
+                    borderRadius: '4px',
+                    color: '#666'
+                  }}>
+                    {getTaskDisplayName(model.model_type)}
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem' }}>
+                  {model.description}
+                </p>
+                <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: '0.5rem' }}>
+                  <span>ID: {model.id}</span> • <span>Owner: {model.owner}</span>
+                </div>
                 {model.tags && model.tags.length > 0 && (
-                  <div>
-                    <strong>Tags:</strong>
-                    <div className={styles.tags}>
-                      {model.tags.map((tag, tagIndex) => (
-                        <span key={tagIndex} className={styles.tag}>{tag}</span>
-                      ))}
-                    </div>
+                  <div className={styles.tags} style={{ marginBottom: '0.5rem' }}>
+                    {model.tags.slice(0, 3).map((tag, tagIndex) => (
+                      <span key={tagIndex} className={styles.tag}>{tag}</span>
+                    ))}
+                    {model.tags.length > 3 && (
+                      <span style={{ fontSize: '0.8rem', color: '#888' }}>+{model.tags.length - 3} more</span>
+                    )}
                   </div>
                 )}
-                <p><strong>Created:</strong> {new Date(model.created_at / 1000000).toLocaleDateString()}</p>
+                <div style={{ fontSize: '0.8rem', color: '#888' }}>
+                  {formatDate(model.created_at)}
+                </div>
               </div>
             ))}
           </div>
