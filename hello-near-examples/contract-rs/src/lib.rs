@@ -1,5 +1,5 @@
 // Find all our documentation at https://docs.near.org
-use near_sdk::{log, near, AccountId};
+use near_sdk::{log, near};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use borsh_derive::BorshSchema;
 use near_sdk::serde::{Deserialize, Serialize};
@@ -25,7 +25,7 @@ pub struct Model {
     pub model_type: String, // "llm", "image", "audio", etc.
     pub version: String,
     pub owner: String, // Store as String for BorshSchema compatibility
-    pub ipfs_hash: Option<String>, // For storing model files
+    pub autonomys_location: String, // Autonomys storage location
     pub tags: Vec<String>,
     pub created_at: u64,
     pub is_active: bool,
@@ -51,10 +51,10 @@ impl Contract {
         name: String,
         description: String,
         model_type: String,
-        ipfs_hash: Option<String>,
+        autonomys_location: String,
         tags: Vec<String>,
     ) {
-        self.internal_create_model(id, name, description, model_type, ipfs_hash, tags);
+        self.internal_create_model(id, name, description, model_type, autonomys_location, tags);
     }
 
     // Get all models with pagination
@@ -106,7 +106,7 @@ impl Contract {
     }
 
     // Get model information by ID
-    pub fn get_model_info(&self, id: String) -> Option<(String, String, String, String, String, Vec<String>)> {
+    pub fn get_model_info(&self, id: String) -> Option<(String, String, String, String, String, String, Vec<String>, u64, bool)> {
         for model in &self.models {
             if model.id == id {
                 return Some((
@@ -115,7 +115,10 @@ impl Contract {
                     model.description.clone(),
                     model.model_type.clone(),
                     model.version.clone(),
+                    model.autonomys_location.clone(),
                     model.tags.clone(),
+                    model.created_at,
+                    model.is_active,
                 ));
             }
         }
@@ -125,6 +128,16 @@ impl Contract {
     // Get total count of models
     pub fn get_total_models(&self) -> u64 {
         self.total_models
+    }
+
+    // Get Autonomys location for model download
+    pub fn get_model_location(&self, id: String) -> Option<String> {
+        for model in &self.models {
+            if model.id == id {
+                return Some(model.autonomys_location.clone());
+            }
+        }
+        None
     }
 
     // Update model status
@@ -176,7 +189,7 @@ mod tests {
             "GPT-4".to_string(),
             "Advanced language model".to_string(),
             "llm".to_string(),
-            Some("QmHash123".to_string()),
+            "autonomys://model_001_location".to_string(),
             vec!["language".to_string(), "ai".to_string()],
         );
         
@@ -185,13 +198,15 @@ mod tests {
         assert_eq!(contract.models.len(), 1);
         
         let model_info = contract.get_model_info("model_001".to_string()).unwrap();
-        let (id, name, description, model_type, version, tags) = model_info;
+        let (id, name, description, model_type, version, autonomys_location, tags, _created_at, is_active) = model_info;
         assert_eq!(id, "model_001");
         assert_eq!(name, "GPT-4");
         assert_eq!(description, "Advanced language model");
         assert_eq!(model_type, "llm");
         assert_eq!(version, "1.0.0");
+        assert_eq!(autonomys_location, "autonomys://model_001_location");
         assert_eq!(tags, vec!["language", "ai"]);
+        assert!(is_active);
     }
 
     #[test]
@@ -204,7 +219,7 @@ mod tests {
             "GPT-4".to_string(),
             "Advanced language model".to_string(),
             "llm".to_string(),
-            None,
+            "autonomys://model_001_location".to_string(),
             vec!["language".to_string()],
         );
         
@@ -214,7 +229,7 @@ mod tests {
             "DALL-E".to_string(),
             "Image generation model".to_string(),
             "image".to_string(),
-            None,
+            "autonomys://model_002_location".to_string(),
             vec!["image".to_string()],
         );
         
@@ -238,7 +253,7 @@ mod tests {
             "DALL-E".to_string(),
             "Image generation model".to_string(),
             "image".to_string(),
-            None,
+            "autonomys://model_002_location".to_string(),
             vec!["image".to_string()],
         );
         
@@ -257,12 +272,12 @@ mod tests {
             "Whisper".to_string(),
             "Speech recognition model".to_string(),
             "audio".to_string(),
-            None,
+            "autonomys://model_003_location".to_string(),
             vec!["speech".to_string()],
         );
         
         contract.add_tags("model_003".to_string(), vec!["transcription".to_string(), "openai".to_string()]);
-        let (_, _, _, _, _, tags) = contract.get_model_info("model_003".to_string()).unwrap();
+        let (_, _, _, _, _, _, tags, _, _) = contract.get_model_info("model_003".to_string()).unwrap();
         assert_eq!(tags, vec!["speech", "transcription", "openai"]);
     }
 }

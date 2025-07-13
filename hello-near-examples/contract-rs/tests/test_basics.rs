@@ -23,14 +23,18 @@ async fn test_contract_is_operational() -> Result<(), Box<dyn std::error::Error>
             "name": "Test GPT Model",
             "description": "A test language model",
             "model_type": "llm",
-            "ipfs_hash": "QmTestHash123",
+            "autonomys_location": "autonomys://test_model_001_location",
             "tags": ["test", "language", "ai"]
         }))
         .gas(Gas::from_gas(300_000_000_000_000)) // 300 TGas
         .deposit(NearToken::from_yoctonear(1)) // 1 yoctoNEAR deposit
         .transact()
         .await?;
-    assert!(outcome.is_success());
+    
+    if !outcome.is_success() {
+        println!("Transaction failed: {:?}", outcome);
+        panic!("Transaction failed");
+    }
 
     // Test getting model info
     let model_info_outcome = contract
@@ -39,7 +43,7 @@ async fn test_contract_is_operational() -> Result<(), Box<dyn std::error::Error>
             "id": "test_model_001"
         }))
         .await?;
-    let model_info: (String, String, String, String, String, Vec<String>) = model_info_outcome.json()?;
+    let model_info: (String, String, String, String, String, String, Vec<String>, u64, bool) = model_info_outcome.json()?;
     assert_eq!(model_info.0, "test_model_001"); // id
     assert_eq!(model_info.1, "Test GPT Model"); // name
     assert_eq!(model_info.2, "A test language model"); // description

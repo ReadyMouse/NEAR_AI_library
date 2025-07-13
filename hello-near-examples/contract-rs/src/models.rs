@@ -8,7 +8,7 @@ impl Contract {
         name: String,
         description: String,
         model_type: String,
-        ipfs_hash: Option<String>,
+        autonomys_location: String,
         tags: Vec<String>,
     ) {
         log!("Creating new AI model: {}", name);
@@ -25,7 +25,7 @@ impl Contract {
             model_type,
             version: "1.0.0".to_string(),
             owner: env::predecessor_account_id().to_string(), // Store as String
-            ipfs_hash,
+            autonomys_location,
             tags,
             created_at: env::block_timestamp(),
             is_active: true,
