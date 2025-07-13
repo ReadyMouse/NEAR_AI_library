@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useWalletSelector } from '@near-wallet-selector/react-hook';
+import { createAutoDriveUploader } from '@/utils/autodrive-uploader';
 
 import styles from '@/styles/app.module.css';
 
@@ -20,9 +21,10 @@ export const AICatalog = () => {
     name: '',
     description: '',
     model_type: 'llm',
-    ipfs_hash: '',
     tags: ''
   });
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState(''); // 'uploading', 'success', 'error'
 
   // Fetch total models count
   const fetchTotalModels = async () => {
@@ -137,11 +139,63 @@ export const AICatalog = () => {
     }
   };
 
+  // Upload file to AutoDrive
+  const uploadToAutoDrive = async (file) => {
+    if (!file) return null;
+    
+    // Validate file size (e.g., 100MB limit)
+    const maxSize = 100 * 1024 * 1024; // 100MB
+    if (file.size > maxSize) {
+      alert('File size too large. Please select a file smaller than 100MB.');
+      setUploadStatus('error');
+      return null;
+    }
+    
+    setUploadStatus('uploading');
+    try {
+      // Initialize AutoDrive uploader
+      const apiKey = process.env.NEXT_PUBLIC_AUTODRIVE_API_KEY;
+      if (!apiKey) {
+        throw new Error('AutoDrive API key not configured');
+      }
+      
+      const uploader = createAutoDriveUploader(apiKey);
+      
+      // Upload file with progress tracking
+      const autonomysLocation = await uploader.uploadFile(file, {
+        compression: true,
+        onProgress: (progress) => {
+          console.log(`Upload progress: ${progress}%`);
+          // You could update a progress bar here
+        }
+      });
+      
+      setUploadStatus('success');
+      return autonomysLocation;
+    } catch (error) {
+      console.error('Upload failed:', error);
+      setUploadStatus('error');
+      return null;
+    }
+  };
+
   // Create new model
   const createModel = async () => {
     if (!selector || !accountId) return;
     
     try {
+      // Upload file first
+      if (!uploadedFile) {
+        alert('Please select a file to upload');
+        return;
+      }
+      
+      const autonomysLocation = await uploadToAutoDrive(uploadedFile);
+      if (!autonomysLocation) {
+        alert('File upload failed. Please try again.');
+        return;
+      }
+      
       const tags = newModel.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
       
       await selector.signAndSendTransaction({
@@ -156,7 +210,7 @@ export const AICatalog = () => {
               name: newModel.name,
               description: newModel.description,
               model_type: newModel.model_type,
-              ipfs_hash: newModel.ipfs_hash || null,
+              autonomys_location: autonomysLocation,
               tags
             },
             gas: '300000000000000',
@@ -171,14 +225,16 @@ export const AICatalog = () => {
         name: '',
         description: '',
         model_type: 'llm',
-        ipfs_hash: '',
         tags: ''
       });
+      setUploadedFile(null);
+      setUploadStatus('');
       setShowCreateForm(false);
       fetchModels();
       fetchTotalModels();
     } catch (error) {
       console.error('Error creating model:', error);
+      setUploadStatus('error');
     }
   };
 
@@ -277,7 +333,7 @@ export const AICatalog = () => {
           className={styles.button}
           style={{ backgroundColor: '#007bff', color: 'white' }}
         >
-          {showCreateForm ? 'Cancel' : 'Add Model'}
+          {showCreateForm ? 'Cancel' : 'Upload Model'}
         </button>
       </div>
 
@@ -285,7 +341,7 @@ export const AICatalog = () => {
       {showCreateForm && (
         <div className={styles.createSection}>
           <form onSubmit={(e) => { e.preventDefault(); createModel(); }} className={styles.createForm}>
-            <h3>Create New Model</h3>
+            <h3>Upload New Model</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <input
                 type="text"
@@ -311,25 +367,47 @@ export const AICatalog = () => {
               className={styles.textarea}
               required
             />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <select
-                value={newModel.model_type}
-                onChange={(e) => setNewModel({...newModel, model_type: e.target.value})}
-                className={styles.select}
-              >
-                <option value="llm">Language Model (LLM)</option>
-                <option value="image">Image Generation</option>
-                <option value="audio">Audio Processing</option>
-                <option value="video">Video Processing</option>
-                <option value="multimodal">Multimodal</option>
-              </select>
+                        <select
+              value={newModel.model_type}
+              onChange={(e) => setNewModel({...newModel, model_type: e.target.value})}
+              className={styles.select}
+            >
+              <option value="llm">Language Model (LLM)</option>
+              <option value="image">Image Generation</option>
+              <option value="audio">Audio Processing</option>
+              <option value="video">Video Processing</option>
+              <option value="multimodal">Multimodal</option>
+            </select>
+            <div style={{ marginBottom: '1rem' }}>
               <input
-                type="text"
-                placeholder="IPFS Hash (optional)"
-                value={newModel.ipfs_hash}
-                onChange={(e) => setNewModel({...newModel, ipfs_hash: e.target.value})}
+                type="file"
+                onChange={(e) => setUploadedFile(e.target.files[0])}
                 className={styles.input}
+                accept=".bin,.model,.pt,.pth,.onnx,.tflite,.h5,.pb,.safetensors"
               />
+              <small style={{ fontSize: '0.8rem', color: '#666', display: 'block', marginTop: '0.25rem' }}>
+                Supported formats: .bin, .model, .pt, .pth, .onnx, .tflite, .h5, .pb, .safetensors
+              </small>
+              {uploadStatus === 'uploading' && (
+                <div style={{ color: '#007bff', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                  ⏳ Uploading to AutoDrive...
+                </div>
+              )}
+              {uploadStatus === 'success' && (
+                <div style={{ color: '#28a745', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                  ✅ File uploaded successfully!
+                </div>
+              )}
+              {uploadedFile && (
+                <div style={{ color: '#007bff', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                  📁 Selected: {uploadedFile.name} ({(uploadedFile.size / 1024 / 1024).toFixed(2)} MB)
+                </div>
+              )}
+              {uploadStatus === 'error' && (
+                <div style={{ color: '#dc3545', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                  ❌ Upload failed. Please try again.
+                </div>
+              )}
             </div>
             <input
               type="text"
@@ -339,7 +417,7 @@ export const AICatalog = () => {
               className={styles.input}
             />
             <button type="submit" className={styles.button} style={{ backgroundColor: '#28a745', color: 'white' }}>
-              Create Model
+              Upload Model
             </button>
           </form>
         </div>
@@ -381,6 +459,16 @@ export const AICatalog = () => {
                 </p>
                 <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: '0.5rem' }}>
                   <span>ID: {model.id}</span> • <span>Owner: {model.owner}</span>
+                  {model.autonomys_location && (
+                    <div style={{ marginTop: '0.25rem' }}>
+                      <span>Location: {model.autonomys_location}</span>
+                    </div>
+                  )}
+                  {model.version && (
+                    <div style={{ marginTop: '0.25rem' }}>
+                      <span>Version: {model.version}</span>
+                    </div>
+                  )}
                 </div>
                 {model.tags && model.tags.length > 0 && (
                   <div className={styles.tags} style={{ marginBottom: '0.5rem' }}>

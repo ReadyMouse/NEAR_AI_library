@@ -12,6 +12,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@autonomys/auto-drive": "^1.5.7",
+    "@autonomys/auto-utils": "^1.5.7",
     "@near-wallet-selector/bitte-wallet": "^9.0.2",
     "@near-wallet-selector/core": "^9.0.2",
     "@near-wallet-selector/ethereum-wallets": "^9.0.2",
