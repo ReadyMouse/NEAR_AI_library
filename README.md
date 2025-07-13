@@ -1,4 +1,4 @@
-# NEAR_AI_library
+# SmirkingFace
 A community-based library of AI models: HuggingFace on-chain
 
 ## Overview
@@ -53,7 +53,7 @@ User → Frontend → NEAR Contract → AI3 URL → Direct download from AI3
 ## Project Structure
 
 ```
-NEAR_AI_library/
+smirking-face/
 ├── hello-near-examples/          # NEAR smart contracts
 │   ├── contract-rs/              # AI model registry contract
 │   └── frontend/                 # Web interface
