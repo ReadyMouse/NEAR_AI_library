@@ -36,26 +36,54 @@ async fn test_contract_is_operational() -> Result<(), Box<dyn std::error::Error>
         panic!("Transaction failed");
     }
 
-    // Test getting model info
-    let model_info_outcome = contract
-        .view("get_model_info")
+    // Test updating model status
+    let status_outcome = user_account
+        .call(contract.id(), "set_active_status")
         .args_json(json!({
-            "id": "test_model_001"
+            "id": "test_model_001",
+            "is_active": false
         }))
+        .gas(Gas::from_gas(50_000_000_000_000)) // 50 TGas
+        .transact()
         .await?;
-    let model_info: (String, String, String, String, String, String, Vec<String>, u64, bool) = model_info_outcome.json()?;
-    assert_eq!(model_info.0, "test_model_001"); // id
-    assert_eq!(model_info.1, "Test GPT Model"); // name
-    assert_eq!(model_info.2, "A test language model"); // description
-    assert_eq!(model_info.3, "llm"); // model_type
+    
+    if !status_outcome.is_success() {
+        println!("Status update failed: {:?}", status_outcome);
+        panic!("Status update failed");
+    }
 
-    // Test getting total models count
-    let total_models_outcome = contract
-        .view("get_total_models")
-        .args_json(json!({}))
+    // Test updating model version
+    let version_outcome = user_account
+        .call(contract.id(), "update_version")
+        .args_json(json!({
+            "id": "test_model_001",
+            "new_version": "2.0.0"
+        }))
+        .gas(Gas::from_gas(50_000_000_000_000)) // 50 TGas
+        .transact()
         .await?;
-    let total_models: u64 = total_models_outcome.json()?;
-    assert_eq!(total_models, 1);
+    
+    if !version_outcome.is_success() {
+        println!("Version update failed: {:?}", version_outcome);
+        panic!("Version update failed");
+    }
 
+    // Test adding tags to model
+    let tags_outcome = user_account
+        .call(contract.id(), "add_tags")
+        .args_json(json!({
+            "id": "test_model_001",
+            "new_tags": ["updated", "v2"]
+        }))
+        .gas(Gas::from_gas(50_000_000_000_000)) // 50 TGas
+        .transact()
+        .await?;
+    
+    if !tags_outcome.is_success() {
+        println!("Tags update failed: {:?}", tags_outcome);
+        panic!("Tags update failed");
+    }
+
+    println!("✅ All write operations completed successfully");
     Ok(())
 }

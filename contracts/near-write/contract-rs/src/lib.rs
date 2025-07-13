@@ -41,7 +41,7 @@ impl Default for Contract {
     }
 }
 
-// Implement the contract structure
+// Implement the contract structure - WRITE ONLY FUNCTIONS
 #[near]
 impl Contract {
     #[payable]
@@ -55,89 +55,6 @@ impl Contract {
         tags: Vec<String>,
     ) {
         self.internal_create_model(id, name, description, model_type, autonomys_location, tags);
-    }
-
-    // Get all models with pagination
-    pub fn get_all_models(&self, from_index: Option<u64>, limit: Option<u64>) -> Vec<Model> {
-        let from_index = from_index.unwrap_or(0);
-        let limit = limit.unwrap_or(50);
-        
-        self.models
-            .iter()
-            .skip(from_index as usize)
-            .take(limit as usize)
-            .cloned()
-            .collect()
-    }
-
-    // Search models by name (case-insensitive partial match)
-    pub fn search_by_name(&self, name_query: String) -> Vec<Model> {
-        let query = name_query.to_lowercase();
-        self.models
-            .iter()
-            .filter(|model| model.name.to_lowercase().contains(&query))
-            .cloned()
-            .collect()
-    }
-
-    // Search models by type
-    pub fn search_by_type(&self, model_type: String) -> Vec<Model> {
-        self.models
-            .iter()
-            .filter(|model| model.model_type == model_type)
-            .cloned()
-            .collect()
-    }
-
-    // Search models by tags (models must have ALL specified tags)
-    pub fn search_by_tags(&self, tags: Vec<String>) -> Vec<Model> {
-        self.models
-            .iter()
-            .filter(|model| {
-                // Check if model has all the specified tags
-                tags.iter().all(|tag| {
-                    model.tags.iter().any(|model_tag| 
-                        model_tag.to_lowercase() == tag.to_lowercase()
-                    )
-                })
-            })
-            .cloned()
-            .collect()
-    }
-
-    // Get model information by ID
-    pub fn get_model_info(&self, id: String) -> Option<(String, String, String, String, String, String, Vec<String>, u64, bool)> {
-        for model in &self.models {
-            if model.id == id {
-                return Some((
-                    model.id.clone(),
-                    model.name.clone(),
-                    model.description.clone(),
-                    model.model_type.clone(),
-                    model.version.clone(),
-                    model.autonomys_location.clone(),
-                    model.tags.clone(),
-                    model.created_at,
-                    model.is_active,
-                ));
-            }
-        }
-        None
-    }
-
-    // Get total count of models
-    pub fn get_total_models(&self) -> u64 {
-        self.total_models
-    }
-
-    // Get Autonomys location for model download
-    pub fn get_model_location(&self, id: String) -> Option<String> {
-        for model in &self.models {
-            if model.id == id {
-                return Some(model.autonomys_location.clone());
-            }
-        }
-        None
     }
 
     // Update model status
@@ -197,16 +114,16 @@ mod tests {
         assert_eq!(contract.total_models, 1);
         assert_eq!(contract.models.len(), 1);
         
-        let model_info = contract.get_model_info("model_001".to_string()).unwrap();
-        let (id, name, description, model_type, version, autonomys_location, tags, _created_at, is_active) = model_info;
-        assert_eq!(id, "model_001");
-        assert_eq!(name, "GPT-4");
-        assert_eq!(description, "Advanced language model");
-        assert_eq!(model_type, "llm");
-        assert_eq!(version, "1.0.0");
-        assert_eq!(autonomys_location, "autonomys://model_001_location");
-        assert_eq!(tags, vec!["language", "ai"]);
-        assert!(is_active);
+        // Verify the model data directly
+        let model = &contract.models[0];
+        assert_eq!(model.id, "model_001");
+        assert_eq!(model.name, "GPT-4");
+        assert_eq!(model.description, "Advanced language model");
+        assert_eq!(model.model_type, "llm");
+        assert_eq!(model.version, "1.0.0");
+        assert_eq!(model.autonomys_location, "autonomys://model_001_location");
+        assert_eq!(model.tags, vec!["language", "ai"]);
+        assert!(model.is_active);
     }
 
     #[test]
@@ -237,12 +154,9 @@ mod tests {
         assert_eq!(contract.total_models, 2);
         assert_eq!(contract.models.len(), 2);
         
-        // Verify we can retrieve both models
-        let model1 = contract.get_model_info("model_001".to_string()).unwrap();
-        let model2 = contract.get_model_info("model_002".to_string()).unwrap();
-        
-        assert_eq!(model1.1, "GPT-4"); // name
-        assert_eq!(model2.1, "DALL-E"); // name
+        // Verify we can access both models directly
+        assert_eq!(contract.models[0].name, "GPT-4");
+        assert_eq!(contract.models[1].name, "DALL-E");
     }
 
     #[test]
@@ -277,7 +191,6 @@ mod tests {
         );
         
         contract.add_tags("model_003".to_string(), vec!["transcription".to_string(), "openai".to_string()]);
-        let (_, _, _, _, _, _, tags, _, _) = contract.get_model_info("model_003".to_string()).unwrap();
-        assert_eq!(tags, vec!["speech", "transcription", "openai"]);
+        assert_eq!(contract.models[0].tags, vec!["speech", "transcription", "openai"]);
     }
 }
