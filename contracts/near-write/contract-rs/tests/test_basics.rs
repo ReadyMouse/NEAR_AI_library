@@ -6,7 +6,7 @@ const FIVE_NEAR: NearToken = NearToken::from_near(5);
 #[tokio::test]
 async fn test_contract_is_operational() -> Result<(), Box<dyn std::error::Error>> {
     let sandbox = near_workspaces::sandbox().await?;
-    let contract_wasm = near_workspaces::compile_project("./").await?;
+    let contract_wasm = near_workspaces::compile_project(env!("CARGO_MANIFEST_DIR")).await?;
 
     let root = sandbox.root_account()?;
 
