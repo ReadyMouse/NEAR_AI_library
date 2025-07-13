@@ -128,5 +128,5 @@ context.md
 **/dist/
 **/.parcel-cache
 **/.next
-hello-near-examples/frontend/build/
-hello-near-examples/frontend/.next/
+frontend/build/
+frontend/.next/
