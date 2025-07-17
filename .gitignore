@@ -129,6 +129,7 @@ temp/
 .cursorignore
 .cursorindexingignore
 context.md
+./cursor/rules/*
 
 # Frontend
 **/dist/
