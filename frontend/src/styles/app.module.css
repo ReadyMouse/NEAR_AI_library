@@ -45,16 +45,21 @@
   align-items: center;
   max-width: 100%;
   width: var(--max-width);
+  gap: 2rem;
+  flex-wrap: wrap;
 }
 
 .card {
   padding: 1rem 1.2rem;
   border-radius: var(--border-radius);
-  background: rgba(var(--card-rgb), 0);
-  border: 1px solid rgba(var(--card-border-rgb), 0);
+  background: rgba(var(--card-rgb), 0.15);
+  border: 1px solid rgba(var(--card-border-rgb), 0.4);
   transition:
     background 200ms,
-    border 200ms;
+    border 200ms,
+    box-shadow 200ms,
+    transform 200ms;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .card span {
@@ -135,8 +140,12 @@
 /* Enable hover only on non-touch devices */
 @media (hover: hover) and (pointer: fine) {
   .card:hover {
-    background: rgba(var(--card-rgb), 0.1);
-    border: 1px solid rgba(var(--card-border-rgb), 0.15);
+    background: rgba(var(--card-rgb), 0.25);
+    border: 1px solid rgba(var(--card-border-rgb), 0.6);
+    box-shadow: 
+      0 4px 20px rgba(0, 0, 0, 0.3),
+      0 0 20px rgba(var(--card-border-rgb), 0.3);
+    transform: translateY(-2px);
   }
 
   .card:hover span {
